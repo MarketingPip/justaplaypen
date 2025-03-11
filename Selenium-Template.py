@@ -145,7 +145,7 @@ def main():
     memorial_links = get_memorial_links(base_url, max_pages=5)
     
     with open("findagrave_data.csv", "w", newline="") as csvfile:
-        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "bio", "gps"]
+        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "bio", "gps", "image_url", "parents", "spouses"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         
