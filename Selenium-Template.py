@@ -43,7 +43,7 @@ def extract_lat_lon(memorial_url):
     return None, None
 
 def main():
-    base_url = "https://www.findagrave.com/memorial/search?location=Arkansas%2C+United+States+of+America&locationId=state_4&orderby=r"
+    base_url = "https://www.findagrave.com/memorial/search?firstname=&middlename=&lastname=&birthyear=&birthyearfilter=&deathyear=&deathyearfilter=&location=Crediton%2C+Huron+County%2C+Ontario%2C+Canada&locationId=city_252602&bio=&linkedToName=&plot=&memorialid=&mcid=&datefilter=&orderby=r"
     memorial_links = get_memorial_links(base_url, max_pages=5)  # Adjust max pages as needed
     
     with open("findagrave_data.csv", "w", newline="") as csvfile:
