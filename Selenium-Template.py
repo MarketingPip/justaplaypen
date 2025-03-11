@@ -11,9 +11,9 @@ import concurrent.futures
 import requests
 
 # Optionally, if running on Linux without an X server, you can use a virtual display:
-# from pyvirtualdisplay import Display
-# display = Display(visible=0, size=(800, 800))
-# display.start()
+from pyvirtualdisplay import Display
+display = Display(visible=0, size=(800, 800))
+display.start()
 
 # Install and configure ChromeDriver for initial link extraction
 chromedriver_autoinstaller.install()
