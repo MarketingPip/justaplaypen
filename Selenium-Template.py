@@ -34,7 +34,18 @@ driver = webdriver.Chrome(options=chrome_options)
 
 # Initialize fake user agent and scraper
 ua = UserAgent()
-scraper = cloudscraper.create_scraper()
+scraper = cloudscraper.create_scraper()  # This automatically bypasses Cloudflare
+
+# Define headers to be used for bypassing detection
+headers = {
+    "User-Agent": ua.random,
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Cache-Control": "max-age=0"
+}
 
 def get_memorial_links(base_url, max_pages=10):
     driver.get(base_url)
@@ -58,33 +69,38 @@ def get_memorial_links(base_url, max_pages=10):
     return memorial_links
 
 def extract_memorial_data(memorial_url):
-    headers = {"User-Agent": ua.random}
-    response = scraper.get(memorial_url, headers=headers)
-    if response.status_code != 200:
-        print(f"Failed to retrieve {memorial_url}")
+    try:
+        # Using cloudscraper to bypass Cloudflare's protection
+        response = scraper.get(memorial_url, headers=headers)
+        if response.status_code != 200:
+            print(f"Failed to retrieve {memorial_url}")
+            return None
+        
+        soup = BeautifulSoup(response.text, "html.parser")
+        data = {
+            "memorial_url": memorial_url,
+            "name": soup.select_one("#bio-name").text.strip() if soup.select_one("#bio-name") else None,
+            "birth_date": soup.select_one("#birthDateLabel").text.strip() if soup.select_one("#birthDateLabel") else None,
+            "death_date": soup.select_one("#deathDateLabel").text.strip() if soup.select_one("#deathDateLabel") else None,
+            "cemetery": soup.select_one("#cemeteryNameLabel").text.strip() if soup.select_one("#cemeteryNameLabel") else None,
+            "location": soup.select_one("#cemeteryCityName").text.strip() if soup.select_one("#cemeteryCityName") else None,
+            "bio": soup.select_one("#inscriptionValue").decode_contents().replace('<br>', '\n').strip() if soup.select_one("#inscriptionValue") else None,
+            "gps": None
+        }
+        
+        gps_span = soup.select_one("#gpsLocation")
+        if gps_span:
+            link = gps_span.find("a")
+            if link and "google.com/maps" in link["href"]:
+                coords = link["href"].split("q=")[1].split("&")[0].split(",")
+                if len(coords) == 2:
+                    data["gps"] = {"latitude": coords[0], "longitude": coords[1]}
+        
+        return data
+    
+    except Exception as e:
+        print(f"Error extracting data from {memorial_url}: {e}")
         return None
-    
-    soup = BeautifulSoup(response.text, "html.parser")
-    data = {
-        "memorial_url": memorial_url,
-        "name": soup.select_one("#bio-name").text.strip() if soup.select_one("#bio-name") else None,
-        "birth_date": soup.select_one("#birthDateLabel").text.strip() if soup.select_one("#birthDateLabel") else None,
-        "death_date": soup.select_one("#deathDateLabel").text.strip() if soup.select_one("#deathDateLabel") else None,
-        "cemetery": soup.select_one("#cemeteryNameLabel").text.strip() if soup.select_one("#cemeteryNameLabel") else None,
-        "location": soup.select_one("#cemeteryCityName").text.strip() if soup.select_one("#cemeteryCityName") else None,
-        "bio": soup.select_one("#inscriptionValue").decode_contents().replace('<br>', '\n').strip() if soup.select_one("#inscriptionValue") else None, # Ensure bios white space is preserved.
-        "gps": None
-    }
-    
-    gps_span = soup.select_one("#gpsLocation")
-    if gps_span:
-        link = gps_span.find("a")
-        if link and "google.com/maps" in link["href"]:
-            coords = link["href"].split("q=")[1].split("&")[0].split(",")
-            if len(coords) == 2:
-                data["gps"] = {"latitude": coords[0], "longitude": coords[1]}
-    
-    return data
 
 def save_data_to_csv(data_list, filename="findagrave_data.csv"):
     with open(filename, "a", newline="") as csvfile:
