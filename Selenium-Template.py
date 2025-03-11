@@ -90,59 +90,80 @@ def extract_family_members(family_section):
     return family_members
 
 def extract_memorial_data(memorial_url):
+    ua = UserAgent()
+    scraper = cloudscraper.create_scraper()
     headers = {"User-Agent": ua.random}
+
     response = scraper.get(memorial_url, headers=headers)
     if response.status_code != 200:
         print(f"Failed to retrieve {memorial_url}")
         return None
-    
+
     soup = BeautifulSoup(response.text, "html.parser")
-    
-    # Extract birthdate and standardize it
-    birth_date_raw = soup.select_one("#birthDateLabel").text.strip() if soup.select_one("#birthDateLabel") else None
-    birth_date = parse_date(birth_date_raw) if birth_date_raw else None
-    
-    # Extract image if available
-    image_url = None
+
+    # Extract birth date
+    birth_date_raw = soup.select_one("#birthDateLabel")
+    birth_date = parse_date(birth_date_raw.text.strip()) if birth_date_raw else None
+
+    # Extract profile image URL
     profile_image_tag = soup.select_one("#profileImage")
-    if profile_image_tag:
-        image_url = profile_image_tag.get("src")
-    
+    image_url = profile_image_tag.get("src") if profile_image_tag else None
+
     # Extract family members (parents and spouses)
     family_grid = soup.select_one("#family-grid")
-    parents_section = family_grid.select_one("ul[aria-labelledby='parentsLabel']")
-    spouse_section = family_grid.select_one("ul[aria-labelledby='spouseLabel']")
     
-    parents = extract_family_members(parents_section)
-    spouses = extract_family_members(spouse_section)
-    
+    parents_section = None
+    spouse_section = None
+
+    if family_grid:
+        parents_section = family_grid.select_one("ul[aria-labelledby='parentsLabel']")
+        spouse_section = family_grid.select_one("ul[aria-labelledby='spouseLabel']")
+
+    parents = extract_family_members(parents_section) if parents_section else []
+    spouses = extract_family_members(spouse_section) if spouse_section else []
+
+    # Extract other data safely
+    def safe_text(selector):
+        element = soup.select_one(selector)
+        return element.text.strip() if element else None
+
     data = {
         "memorial_url": memorial_url,
-        "name": soup.select_one("#bio-name").text.strip() if soup.select_one("#bio-name") else None,
+        "name": safe_text("#bio-name"),
         "birth_date": birth_date,
-        "death_date": soup.select_one("#deathDateLabel").text.strip() if soup.select_one("#deathDateLabel") else None,
-        "cemetery": soup.select_one("#cemeteryNameLabel").text.strip() if soup.select_one("#cemeteryNameLabel") else None,
-        "location": soup.select_one("#cemeteryCityName").text.strip() if soup.select_one("#cemeteryCityName") else None,
-        "bio": soup.select_one("#inscriptionValue").decode_contents().replace('<br>', '\n').strip() if soup.select_one("#inscriptionValue") else None,
+        "death_date": safe_text("#deathDateLabel"),
+        "cemetery": safe_text("#cemeteryNameLabel"),
+        "location": safe_text("#cemeteryCityName"),
+        "bio": None,
         "gps": None,
         "image_url": image_url,
         "parents": parents,
         "spouses": spouses
     }
-    
+
+    # Extract bio safely
+    bio_section = soup.select_one("#inscriptionValue")
+    if bio_section:
+        data["bio"] = bio_section.decode_contents().replace('<br>', '\n').strip()
+
+    # Extract GPS coordinates
     gps_span = soup.select_one("#gpsLocation")
     if gps_span:
         link = gps_span.find("a")
         if link and "google.com/maps" in link["href"]:
-            coords = link["href"].split("q=")[1].split("&")[0].split(",")
-            if len(coords) == 2:
-                data["gps"] = {"latitude": coords[0], "longitude": coords[1]}
-    
+            try:
+                coords = link["href"].split("q=")[1].split("&")[0].split(",")
+                if len(coords) == 2:
+                    data["gps"] = {"latitude": coords[0], "longitude": coords[1]}
+            except IndexError:
+                pass  # Handle case where URL format is unexpected
+
     return data
 
 def main():
     base_url = "https://www.findagrave.com/memorial/search?location=Crediton%2C+Huron+County%2C+Ontario%2C+Canada&locationId=city_252602"
     memorial_links = get_memorial_links(base_url, max_pages=5)
+    driver.quit() # Close driver to free memory + we do not need it anymore.
     
     with open("findagrave_data.csv", "w", newline="") as csvfile:
         fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "bio", "gps", "image_url", "parents", "spouses"]
@@ -158,4 +179,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    driver.quit()
+    
