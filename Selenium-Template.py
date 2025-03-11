@@ -29,20 +29,44 @@ def get_memorial_links(base_url, max_pages=10):
 
 def extract_lat_lon(memorial_url):
     response = requests.get(memorial_url)
+    
+    # Print the raw HTML content to see the full page source
+    print("HTML Content:")
+    print(response.text)  # This prints the entire HTML content of the page
+    
     if response.status_code != 200:
+        print("Failed to retrieve the page.")
         return None, None
     
     soup = BeautifulSoup(response.text, "html.parser")
-    gps_span =  soup.select_one('#gpsLocation')
+    print(soup.prettify())
+    # Look for the #gpsLocation element in the HTML
+    gps_span = soup.select_one('#gpsLocation')
     if gps_span:
-        link = gps_span
-        print(link)
-        if link and "google.com/maps" in link["href"]:
-            parts = link["href"].split("q=")
+        print("Found #gpsLocation element:")
+    else:
+        print("No #gpsLocation element found.")
+        return None, None
+
+    # Look for the <a> tag within the gpsLocation span
+    link = gps_span.find('a')
+    if link:
+        print("Found link in #gpsLocation:")
+        print(link.prettify())  # Pretty print the anchor tag
+        href = link.get('href', '')
+        if "google.com/maps" in href:
+            print(f"Google Maps URL: {href}")
+            parts = href.split("q=")
             if len(parts) > 1:
                 coords = parts[1].split("&")[0].split(",")  # Extract latitude & longitude
                 if len(coords) == 2:
+                    print(f"Latitude: {coords[0]}, Longitude: {coords[1]}")
                     return coords[0], coords[1]
+        else:
+            print(f"URL does not contain 'google.com/maps': {href}")
+    else:
+        print("No <a> tag found within #gpsLocation.")
+    
     return None, None
 
 def main():
