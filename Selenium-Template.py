@@ -13,8 +13,8 @@ from fake_useragent import UserAgent
 import concurrent.futures
 
 # Optionally start virtual display if required (e.g. in Linux without X server)
-# display = Display(visible=0, size=(800, 800))
-# display.start()
+display = Display(visible=0, size=(800, 800))
+display.start()
 
 # Install and configure ChromeDriver
 chromedriver_autoinstaller.install()
