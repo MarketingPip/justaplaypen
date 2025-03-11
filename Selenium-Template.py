@@ -119,6 +119,9 @@ def extract_memorial_data(memorial_url):
         parents_section = family_grid.select_one("ul[aria-labelledby='parentsLabel']")
         spouse_section = family_grid.select_one("ul[aria-labelledby='spouseLabel']")
 
+    if birh_date:
+        birth_date = parse_date(birth_date)
+
     parents = extract_family_members(parents_section) if parents_section else []
     spouses = extract_family_members(spouse_section) if spouse_section else []
 
