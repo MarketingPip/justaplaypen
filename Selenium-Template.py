@@ -10,6 +10,7 @@ import time
 import random
 from fake_useragent import UserAgent
 import cloudscraper
+from concurrent.futures import ThreadPoolExecutor
 
 # Initialize virtual display for headless mode
 display = Display(visible=0, size=(800, 800))  
@@ -19,18 +20,12 @@ display.start()
 chromedriver_autoinstaller.install()
 chrome_options = webdriver.ChromeOptions()
 options = [
-  # Define window size here
-   "--window-size=1200,1200",
-    "--ignore-certificate-errors"
- 
-    "--headless",
-    #"--disable-gpu",
-    #"--window-size=1920,1200",
-    #"--ignore-certificate-errors",
-    #"--disable-extensions",
-    "--no-sandbox",
-    "--disable-dev-shm-usage",
-    '--remote-debugging-port=9222'
+  "--window-size=1200,1200",
+  "--ignore-certificate-errors",
+  "--headless",
+  "--no-sandbox",
+  "--disable-dev-shm-usage",
+  '--remote-debugging-port=9222'
 ]
 for option in options:
     chrome_options.add_argument(option)
@@ -91,21 +86,32 @@ def extract_memorial_data(memorial_url):
     
     return data
 
+def save_data_to_csv(data_list, filename="findagrave_data.csv"):
+    with open(filename, "a", newline="") as csvfile:
+        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "bio", "gps"]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        for data in data_list:
+            writer.writerow(data)
+
 def main():
     base_url = "https://www.findagrave.com/memorial/search?location=Crediton%2C+Huron+County%2C+Ontario%2C+Canada&locationId=city_252602"
     memorial_links = get_memorial_links(base_url, max_pages=5)
     
+    # Write header to CSV file
     with open("findagrave_data.csv", "w", newline="") as csvfile:
         fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "bio", "gps"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
+    
+    # Use ThreadPoolExecutor to extract data in parallel
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        results = executor.map(extract_memorial_data, memorial_links)
         
-        for url in memorial_links:
-            data = extract_memorial_data(url)
-            if data:
-                writer.writerow(data)
-                print(f"Extracted: {data}")
-                time.sleep(random.uniform(1, 3))
+        # Collect and save the results
+        extracted_data = [data for data in results if data]
+        save_data_to_csv(extracted_data)
+
+    print(f"Data extraction completed for {len(extracted_data)} memorials.")
 
 if __name__ == "__main__":
     main()
