@@ -10,6 +10,7 @@ import time
 import random
 from fake_useragent import UserAgent
 import cloudscraper
+from datetime import datetime
 
 # Initialize virtual display for headless mode
 display = Display(visible=0, size=(800, 800))  
@@ -62,6 +63,15 @@ def get_memorial_links(base_url, max_pages=10):
     
     return memorial_links
 
+
+
+def parse_date(date_string):
+    try:
+        # Try to parse the date in formats like "4 Jun 1871" or "4 Jun, 1871"
+        return datetime.strptime(date_string, "%d %b %Y").strftime("%Y-%m-%d")
+    except ValueError:
+        return None  # Return None if date format is not recognized
+
 def extract_memorial_data(memorial_url):
     headers = {"User-Agent": ua.random}
     response = scraper.get(memorial_url, headers=headers)
@@ -70,14 +80,19 @@ def extract_memorial_data(memorial_url):
         return None
     
     soup = BeautifulSoup(response.text, "html.parser")
+    birth_date_raw = soup.select_one("#birthDateLabel").text.strip() if soup.select_one("#birthDateLabel") else None
+    
+    # Standardize birth date format
+    birth_date = parse_date(birth_date_raw) if birth_date_raw else None
+    
     data = {
         "memorial_url": memorial_url,
         "name": soup.select_one("#bio-name").text.strip() if soup.select_one("#bio-name") else None,
-        "birth_date": soup.select_one("#birthDateLabel").text.strip() if soup.select_one("#birthDateLabel") else None,
+        "birth_date": birth_date,
         "death_date": soup.select_one("#deathDateLabel").text.strip() if soup.select_one("#deathDateLabel") else None,
         "cemetery": soup.select_one("#cemeteryNameLabel").text.strip() if soup.select_one("#cemeteryNameLabel") else None,
         "location": soup.select_one("#cemeteryCityName").text.strip() if soup.select_one("#cemeteryCityName") else None,
-        "bio": soup.select_one("#inscriptionValue").decode_contents().replace('<br>', '\n').strip() if soup.select_one("#inscriptionValue") else None, # Ensure bios white space is preserved.
+        "bio": soup.select_one("#inscriptionValue").decode_contents().replace('<br>', '\n').strip() if soup.select_one("#inscriptionValue") else None,
         "gps": None
     }
     
