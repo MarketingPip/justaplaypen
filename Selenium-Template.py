@@ -72,24 +72,49 @@ def parse_date(date_string):
     except ValueError:
         return None  # Return None if date format is not recognized
 
+def extract_family_members(family_section):
+    family_members = []
+    if family_section:
+        family_items = family_section.find_all("li", itemscope=True)
+        for item in family_items:
+            name = item.select_one("h3[itemprop='name']").text.strip() if item.select_one("h3[itemprop='name']") else None
+            birth_date = item.select_one("span[itemprop='birthDate']").text.strip() if item.select_one("span[itemprop='birthDate']") else None
+            death_date = item.select_one("span[itemprop='deathDate']").text.strip() if item.select_one("span[itemprop='deathDate']") else None
+            profile_url = item.find("a", itemprop="url")["href"] if item.find("a", itemprop="url") else None
+            family_members.append({
+                "name": name,
+                "birth_date": parse_date(birth_date) if birth_date else None,
+                "death_date": parse_date(death_date) if death_date else None,
+                "profile_url": profile_url
+            })
+    return family_members
+
 def extract_memorial_data(memorial_url):
     headers = {"User-Agent": ua.random}
     response = scraper.get(memorial_url, headers=headers)
     if response.status_code != 200:
         print(f"Failed to retrieve {memorial_url}")
         return None
-
+    
+    soup = BeautifulSoup(response.text, "html.parser")
+    
+    # Extract birthdate and standardize it
+    birth_date_raw = soup.select_one("#birthDateLabel").text.strip() if soup.select_one("#birthDateLabel") else None
+    birth_date = parse_date(birth_date_raw) if birth_date_raw else None
+    
     # Extract image if available
     image_url = None
     profile_image_tag = soup.select_one("#profileImage")
     if profile_image_tag:
         image_url = profile_image_tag.get("src")
-  
-    soup = BeautifulSoup(response.text, "html.parser")
-    birth_date_raw = soup.select_one("#birthDateLabel").text.strip() if soup.select_one("#birthDateLabel") else None
     
-    # Standardize birth date format
-    birth_date = parse_date(birth_date_raw) if birth_date_raw else None
+    # Extract family members (parents and spouses)
+    family_grid = soup.select_one("#family-grid")
+    parents_section = family_grid.select_one("ul[aria-labelledby='parentsLabel']")
+    spouse_section = family_grid.select_one("ul[aria-labelledby='spouseLabel']")
+    
+    parents = extract_family_members(parents_section)
+    spouses = extract_family_members(spouse_section)
     
     data = {
         "memorial_url": memorial_url,
@@ -100,7 +125,9 @@ def extract_memorial_data(memorial_url):
         "location": soup.select_one("#cemeteryCityName").text.strip() if soup.select_one("#cemeteryCityName") else None,
         "bio": soup.select_one("#inscriptionValue").decode_contents().replace('<br>', '\n').strip() if soup.select_one("#inscriptionValue") else None,
         "gps": None,
-        "image_url": image_url
+        "image_url": image_url,
+        "parents": parents,
+        "spouses": spouses
     }
     
     gps_span = soup.select_one("#gpsLocation")
