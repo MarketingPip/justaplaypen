@@ -84,7 +84,7 @@ def get_free_proxies():
     Scrape free proxies from the ProxyScrape API.
     Returns a list of proxies in "ip:port" format.
     """
-    url = "https://api.proxyscrape.com/?request=getproxies&proxytype=http&timeout=1000&ssl=yes"
+    url = "https://api.proxyscrape.com/?request=displayproxies&proxytype=http&timeout=1000&country=all&ssl=yes&anonymity=all"
     try:
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
