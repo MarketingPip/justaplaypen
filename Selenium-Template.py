@@ -78,7 +78,13 @@ def extract_memorial_data(memorial_url):
     if response.status_code != 200:
         print(f"Failed to retrieve {memorial_url}")
         return None
-    
+
+    # Extract image if available
+    image_url = None
+    profile_image_tag = soup.select_one("#profileImage")
+    if profile_image_tag:
+        image_url = profile_image_tag.get("src")
+  
     soup = BeautifulSoup(response.text, "html.parser")
     birth_date_raw = soup.select_one("#birthDateLabel").text.strip() if soup.select_one("#birthDateLabel") else None
     
@@ -93,7 +99,8 @@ def extract_memorial_data(memorial_url):
         "cemetery": soup.select_one("#cemeteryNameLabel").text.strip() if soup.select_one("#cemeteryNameLabel") else None,
         "location": soup.select_one("#cemeteryCityName").text.strip() if soup.select_one("#cemeteryCityName") else None,
         "bio": soup.select_one("#inscriptionValue").decode_contents().replace('<br>', '\n').strip() if soup.select_one("#inscriptionValue") else None,
-        "gps": None
+        "gps": None,
+        "image_url": image_url
     }
     
     gps_span = soup.select_one("#gpsLocation")
