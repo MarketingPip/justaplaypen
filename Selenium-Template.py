@@ -1,22 +1,15 @@
+import undetected_chromedriver as uc
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 import chromedriver_autoinstaller
-from pyvirtualdisplay import Display  # Optional: modern headless Chrome may not require this
 import time
 import random
 import csv
 from datetime import datetime
 from bs4 import BeautifulSoup
-import cloudscraper
-from fake_useragent import UserAgent
 import concurrent.futures
 
-# Optionally start virtual display if required (e.g. in Linux without X server)
-display = Display(visible=0, size=(800, 800))
-display.start()
-
-# Install and configure ChromeDriver
+# Use Selenium with chromedriver_autoinstaller for initial link extraction.
 chromedriver_autoinstaller.install()
 chrome_options = Options()
 chrome_args = [
@@ -32,16 +25,10 @@ for arg in chrome_args:
 
 driver = webdriver.Chrome(options=chrome_options)
 
-# Global instances to avoid recreating per request
-global_ua = UserAgent()
-global_scraper = cloudscraper.create_scraper()
-
 def get_memorial_links(base_url, max_pages=10):
     driver.get(base_url)
     last_height = driver.execute_script("return document.body.scrollHeight")
     page = 0
-    
-    # Scroll until no new content or until reaching max_pages iterations
     while page < max_pages:
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(random.uniform(1, 2))  # Reduced delay for faster scrolling
@@ -51,21 +38,19 @@ def get_memorial_links(base_url, max_pages=10):
         last_height = new_height
         page += 1
 
-    memorial_links = set()  # Use set to avoid duplicates
+    memorial_links = set()
     elements = driver.find_elements("css selector", "a[href*='/memorial/']")
     for elem in elements:
         link = elem.get_attribute("href")
         if link:
             memorial_links.add(link)
-    
     return list(memorial_links)
 
 def parse_date(date_string):
     try:
-        # Try to parse dates like "4 Jun 1871" or "4 Jun, 1871"
         return datetime.strptime(date_string, "%d %b %Y").strftime("%Y-%m-%d")
-    except ValueError:
-        return None  # Return None if the date format is not recognized
+    except Exception:
+        return None
 
 def extract_family_members(family_section):
     family_members = []
@@ -89,28 +74,31 @@ def extract_family_members(family_section):
     return family_members
 
 def extract_memorial_data(memorial_url):
-    headers = {"User-Agent": global_ua.random}
+    # Use undetected-chromedriver to bypass Cloudflare
     try:
-        response = global_scraper.get(memorial_url, headers=headers, timeout=10)
+        uc_options = uc.ChromeOptions()
+        uc_options.add_argument("--headless=new")
+        uc_options.add_argument("--no-sandbox")
+        uc_options.add_argument("--disable-dev-shm-usage")
+        # Optionally, add further options or a proxy here if needed
+        driver_uc = uc.Chrome(options=uc_options)
+        driver_uc.get(memorial_url)
+        time.sleep(random.uniform(2, 4))  # Wait for page to fully load
+        html = driver_uc.page_source
+        driver_uc.quit()
     except Exception as e:
         print(f"Error fetching {memorial_url}: {e}")
         return None
 
-    if response.status_code != 200:
-        print(f"Failed to retrieve {memorial_url}: {response.status_code}")
-        return None
+    soup = BeautifulSoup(html, "html.parser")
 
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    # Extract birth date
+    # Extract basic fields
     birth_date_raw = soup.select_one("#birthDateLabel")
     birth_date = parse_date(birth_date_raw.text.strip()) if birth_date_raw else None
-
-    # Extract profile image URL
     profile_image_tag = soup.select_one("#profileImage")
     image_url = profile_image_tag.get("src") if profile_image_tag else None
 
-    # Extract family members (parents and spouses)
+    # Extract family members
     family_grid = soup.select_one("#family-grid")
     parents_section = spouse_section = None
     if family_grid:
@@ -137,7 +125,7 @@ def extract_memorial_data(memorial_url):
         "spouses": spouses
     }
 
-    # Extract bio
+    # Extract biography
     bio_section = soup.select_one("#inscriptionValue")
     if bio_section:
         data["bio"] = bio_section.decode_contents().replace('<br>', '\n').strip()
@@ -152,7 +140,7 @@ def extract_memorial_data(memorial_url):
                 if len(coords) == 2:
                     data["gps"] = {"latitude": coords[0], "longitude": coords[1]}
             except IndexError:
-                pass  # Unexpected URL format
+                pass
 
     return data
 
@@ -161,17 +149,16 @@ def main():
                 "location=Crediton%2C+Huron+County%2C+Ontario%2C+Canada&"
                 "locationId=city_252602")
     memorial_links = get_memorial_links(base_url, max_pages=5)
-    driver.quit()  # Free up resources as Selenium is no longer needed
+    driver.quit()  # Free Selenium resources as it's no longer needed
 
-    # Open CSV file for writing
     with open("findagrave_data.csv", "w", newline="", encoding="utf-8") as csvfile:
         fieldnames = ["memorial_url", "name", "birth_date", "death_date",
                       "cemetery", "location", "bio", "gps", "image_url", "parents", "spouses"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
-        # Use ThreadPoolExecutor to fetch memorial data concurrently
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        # Use ThreadPoolExecutor to fetch pages concurrently.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             future_to_url = {executor.submit(extract_memorial_data, url): url for url in memorial_links}
             for future in concurrent.futures.as_completed(future_to_url):
                 url = future_to_url[future]
@@ -181,7 +168,6 @@ def main():
                     print(f"Extracted: {data['name']} from {url}")
                 else:
                     print(f"Skipping {url} due to extraction error.")
-                # A short sleep can still be used to mitigate server overload
                 time.sleep(random.uniform(0.5, 1.5))
 
 if __name__ == "__main__":
