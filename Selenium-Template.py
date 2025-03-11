@@ -77,7 +77,7 @@ def extract_memorial_data(memorial_url):
         "death_date": soup.select_one("#deathDateLabel").text.strip() if soup.select_one("#deathDateLabel") else None,
         "cemetery": soup.select_one("#cemeteryNameLabel").text.strip() if soup.select_one("#cemeteryNameLabel") else None,
         "location": soup.select_one("#cemeteryCityName").text.strip() if soup.select_one("#cemeteryCityName") else None,
-        "bio": soup.select_one("#inscriptionValue").text.strip() if soup.select_one("#inscriptionValue") else None,
+        "bio": soup.select_one("#inscriptionValue").decode_contents().replace('<br>', '\n').strip() if soup.select_one("#inscriptionValue") else None, # Ensure bios white space is preserved.
         "gps": None
     }
     
