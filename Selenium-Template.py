@@ -1,7 +1,6 @@
-import undetected_chromedriver as uc
+import chromedriver_autoinstaller
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-import chromedriver_autoinstaller
 import time
 import random
 import csv
@@ -9,11 +8,17 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 import concurrent.futures
 import requests
+import cloudscraper
+from fake_useragent import UserAgent
+
+# Global cloudscraper instance and fake user agent
+global_scraper = cloudscraper.create_scraper()
+global_ua = UserAgent()
 
 # Optionally, if running on Linux without an X server, you can use a virtual display:
-from pyvirtualdisplay import Display
-display = Display(visible=0, size=(800, 800))
-display.start()
+# from pyvirtualdisplay import Display
+# display = Display(visible=0, size=(800, 800))
+# display.start()
 
 # Install and configure ChromeDriver for initial link extraction
 chromedriver_autoinstaller.install()
@@ -106,28 +111,26 @@ def extract_memorial_data(memorial_url):
         proxy = None
         if global_proxies:
             proxy = random.choice(global_proxies)
+        proxies = {}
+        if proxy:
+            proxies = {"http": f"http://{proxy}", "https": f"http://{proxy}"}
+            print(f"Using proxy {proxy} for {memorial_url}")
         try:
-            uc_options = uc.ChromeOptions()
-            uc_options.add_argument("--headless=new")
-            uc_options.add_argument("--no-sandbox")
-            uc_options.add_argument("--disable-dev-shm-usage")
-            # If a proxy is available, add it to the Chrome options.
-            if proxy:
-                uc_options.add_argument(f"--proxy-server=http://{proxy}")
-                print(f"Using proxy {proxy} for {memorial_url}")
-            driver_uc = uc.Chrome(options=uc_options)
-            driver_uc.get(memorial_url)
-            time.sleep(random.uniform(2, 4))  # Wait for the page to load
-            html = driver_uc.page_source
-            driver_uc.quit()
-            break  # Successful extraction; exit retry loop.
+            headers = {"User-Agent": global_ua.random}
+            response = global_scraper.get(memorial_url, headers=headers, proxies=proxies, timeout=15)
+            if response.status_code == 200:
+                html = response.text
+                break
+            else:
+                print(f"Status code {response.status_code} for {memorial_url} using proxy {proxy}")
+                if proxy in global_proxies:
+                    global_proxies.remove(proxy)
         except Exception as e:
             print(f"Attempt {attempt+1} for {memorial_url} failed with proxy {proxy}: {e}")
             if proxy and proxy in global_proxies:
                 global_proxies.remove(proxy)
-            if attempt == attempts - 1:
-                return None
-
+            time.sleep(random.uniform(1, 2))
+            continue
     if not html:
         return None
 
@@ -140,7 +143,7 @@ def extract_memorial_data(memorial_url):
     profile_image_tag = soup.select_one("#profileImage")
     image_url = profile_image_tag.get("src") if profile_image_tag else None
 
-    # Extract family members
+    # Extract family members (parents and spouses)
     family_grid = soup.select_one("#family-grid")
     parents_section = spouse_section = None
     if family_grid:
