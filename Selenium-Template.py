@@ -33,13 +33,15 @@ def extract_lat_lon(memorial_url):
         return None, None
     
     soup = BeautifulSoup(response.text, "html.parser")
-    maps_links = soup.find_all("a", href=True)
-    for link in maps_links:
-        if "google.com/maps" in link["href"]:
-            parts = link["href"].split("@")
+    gps_span = soup.find("span", id="gpsLocation")
+    if gps_span:
+        link = gps_span.find("a", href=True)
+        if link and "google.com/maps" in link["href"]:
+            parts = link["href"].split("q=")
             if len(parts) > 1:
-                coords = parts[1].split(",")[:2]  # Extract latitude & longitude
-                return coords[0], coords[1]
+                coords = parts[1].split("&")[0].split(",")  # Extract latitude & longitude
+                if len(coords) == 2:
+                    return coords[0], coords[1]
     return None, None
 
 def main():
