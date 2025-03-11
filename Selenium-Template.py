@@ -5,6 +5,12 @@ import time
 import random
 from fake_useragent import UserAgent
 import cloudscraper  # To handle Cloudflare protection
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
 
 # Initialize fake user agent for randomizing User-Agent header
 ua = UserAgent()
@@ -14,94 +20,86 @@ scraper = cloudscraper.create_scraper()
 
 def get_memorial_links(base_url, max_pages=10):
     memorial_links = []
-    for page in range(1, max_pages + 1):
-        url = f"{base_url}&page={page}"
-        print(f"Scraping page {page}: {url}")
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
+    options.add_argument(f"user-agent={ua.random}")
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver.get(base_url)
+    time.sleep(3)  # Allow page to load
 
-        # Randomize headers to mimic different browser requests
-        headers = {
-            "User-Agent": ua.random,
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Connection": "keep-alive",
-        }
-        
-        response = scraper.get(url, headers=headers)
-        if response.status_code != 200:
-            print("Failed to retrieve page.")
+    # Scroll to bottom to load all results
+    last_height = driver.execute_script("return document.body.scrollHeight")
+    while True:
+        driver.find_element(By.TAG_NAME, "body").send_keys(Keys.END)
+        time.sleep(2)
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        if new_height == last_height:
             break
-        
-        soup = BeautifulSoup(response.text, "html.parser")
-        for link in soup.find_all("a", href=True):
-            if "/memorial/" in link["href"]:
-                full_url = "https://www.findagrave.com" + link["href"]
-                if full_url not in memorial_links:
-                    memorial_links.append(full_url)
-        
-        # Implement random sleep to mimic human behavior and avoid detection
-        time.sleep(random.uniform(1, 3))  # Sleep between 1 to 3 seconds
+        last_height = new_height
+    
+    # Extract memorial links
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    for link in soup.find_all("a", href=True, class_="memorial-search-result-link"):  # Adjust class as needed
+        full_url = "https://www.findagrave.com" + link["href"]
+        if full_url not in memorial_links:
+            memorial_links.append(full_url)
+    
+    driver.quit()
     return memorial_links
 
-def extract_lat_lon(memorial_url):
-    # Randomize headers to avoid blocking
+def extract_memorial_data(memorial_url):
     headers = {
         "User-Agent": ua.random,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.5",
         "Connection": "keep-alive",
     }
-
     response = scraper.get(memorial_url, headers=headers)
-    
-    # Check if we successfully retrieved the page
     if response.status_code != 200:
-        print("Failed to retrieve the page.")
-        return None, None
-    
-    soup = BeautifulSoup(response.text, "html.parser")
-    
-    # Look for the #gpsLocation element in the HTML
-    gps_span = soup.select_one('#gpsLocation')
-    if gps_span:
-        print("Found #gpsLocation element:")
-    else:
-        print("No #gpsLocation element found.")
-        return None, None
+        print("Failed to retrieve page.")
+        return None
 
-    # Look for the <a> tag within the gpsLocation span
-    link = gps_span.find('a')
-    if link:
-        print("Found link in #gpsLocation:")
-        href = link.get('href', '')
-        if "google.com/maps" in href:
-            print(f"Google Maps URL: {href}")
-            parts = href.split("q=")
+    soup = BeautifulSoup(response.text, "html.parser")
+    data = {
+        "memorial_url": memorial_url,
+        "name": soup.select_one(".memorial-name").text.strip() if soup.select_one(".memorial-name") else None,
+        "image_url": soup.select_one(".memorial-image img")["src"] if soup.select_one(".memorial-image img") else None,
+        "birth_date": soup.select_one(".birthDate").text.strip() if soup.select_one(".birthDate") else None,
+        "death_date": soup.select_one(".deathDate").text.strip() if soup.select_one(".deathDate") else None,
+        "cemetery": soup.select_one(".cemetery-name").text.strip() if soup.select_one(".cemetery-name") else None,
+        "location": soup.select_one(".cemetery-location").text.strip() if soup.select_one(".cemetery-location") else None,
+        "biography": soup.select_one(".bio-text").text.strip() if soup.select_one(".bio-text") else None,
+        "family": [fam.text.strip() for fam in soup.select(".family-member")] if soup.select(".family-member") else [],
+    }
+
+    gps_span = soup.select_one("#gpsLocation")
+    if gps_span:
+        link = gps_span.find("a")
+        if link and "google.com/maps" in link.get("href", ""):
+            parts = link["href"].split("q=")
             if len(parts) > 1:
-                coords = parts[1].split("&")[0].split(",")  # Extract latitude & longitude
+                coords = parts[1].split("&")[0].split(",")
                 if len(coords) == 2:
-                    print(f"Latitude: {coords[0]}, Longitude: {coords[1]}")
-                    return coords[0], coords[1]
-        else:
-            print(f"URL does not contain 'google.com/maps': {href}")
-    else:
-        print("No <a> tag found within #gpsLocation.")
+                    data["latitude"], data["longitude"] = coords[0], coords[1]
     
-    return None, None
+    return data
 
 def main():
     base_url = "https://www.findagrave.com/memorial/search?firstname=&middlename=&lastname=&birthyear=&birthyearfilter=&deathyear=&deathyearfilter=&location=Crediton%2C+Huron+County%2C+Ontario%2C+Canada&locationId=city_252602&bio=&linkedToName=&plot=&memorialid=&mcid=&datefilter=&orderby=r"
-    memorial_links = get_memorial_links(base_url, max_pages=5)  # Adjust max pages as needed
+    memorial_links = get_memorial_links(base_url, max_pages=5)
     
     with open("findagrave_data.csv", "w", newline="") as csvfile:
-        fieldnames = ["memorial_url", "latitude", "longitude"]
+        fieldnames = ["memorial_url", "name", "image_url", "birth_date", "death_date", "cemetery", "location", "biography", "family", "latitude", "longitude"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         
         for url in memorial_links:
-            lat, lon = extract_lat_lon(url)
-            writer.writerow({"memorial_url": url, "latitude": lat, "longitude": lon})
-            print(f"Extracted: {url} -> {lat}, {lon}")
-            time.sleep(random.uniform(1, 3))  # Sleep between 1 to 3 seconds to avoid detection
+            data = extract_memorial_data(url)
+            if data:
+                writer.writerow(data)
+                print(f"Extracted: {data['name']} ({url})")
+            time.sleep(random.uniform(1, 3))
 
 if __name__ == "__main__":
     main()
