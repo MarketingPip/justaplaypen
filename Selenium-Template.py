@@ -36,6 +36,7 @@ def extract_lat_lon(memorial_url):
     gps_span = soup.find("span", id="gpsLocation")
     if gps_span:
         link = gps_span.find("a", href=True)
+        print(link)
         if link and "google.com/maps" in link["href"]:
             parts = link["href"].split("q=")
             if len(parts) > 1:
