@@ -72,12 +72,12 @@ def extract_memorial_data(memorial_url):
     soup = BeautifulSoup(response.text, "html.parser")
     data = {
         "memorial_url": memorial_url,
-        "name": soup.select_one(".memorial-name").text.strip() if soup.select_one(".memorial-name") else None,
-        "birth_date": soup.select_one(".birth-date").text.strip() if soup.select_one(".birth-date") else None,
-        "death_date": soup.select_one(".death-date").text.strip() if soup.select_one(".death-date") else None,
-        "cemetery": soup.select_one(".cemetery-name").text.strip() if soup.select_one(".cemetery-name") else None,
-        "location": soup.select_one(".cemetery-location").text.strip() if soup.select_one(".cemetery-location") else None,
-        "bio": soup.select_one(".bio-text").text.strip() if soup.select_one(".bio-text") else None,
+        "name": soup.select_one("#bio-name").text.strip() if soup.select_one("#bio-name") else None,
+        "birth_date": soup.select_one("#birthDateLabel").text.strip() if soup.select_one("#birthDateLabel") else None,
+        "death_date": soup.select_one("#deathDateLabel").text.strip() if soup.select_one("#deathDateLabel") else None,
+        "cemetery": soup.select_one("#cemeteryNameLabel").text.strip() if soup.select_one("#cemeteryNameLabel") else None,
+        "location": soup.select_one("#cemeteryCityName").text.strip() if soup.select_one("#cemeteryCityName") else None,
+        "bio": soup.select_one("#inscriptionValue").text.strip() if soup.select_one("#inscriptionValue") else None,
         "gps": None
     }
     
