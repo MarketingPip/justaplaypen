@@ -20,8 +20,8 @@ chromedriver_autoinstaller.install()
 chrome_options = webdriver.ChromeOptions()
 options = [
     "--window-size=1200,1200",
-    "--ignore-certificate-errors",
-    "--headless"  # Run headless to avoid UI rendering issues
+    "--ignore-certificate-errors"
+##    "--headless"  # Run headless to avoid UI rendering issues
 ]
 
 for option in options:
