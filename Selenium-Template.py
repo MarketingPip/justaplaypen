@@ -2,7 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 import chromedriver_autoinstaller
-#from pyvirtualdisplay import Display  # Optional: modern headless Chrome may not require this
+from pyvirtualdisplay import Display  # Optional: modern headless Chrome may not require this
 import time
 import random
 import csv
