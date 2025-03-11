@@ -2,18 +2,31 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 import time
+import random
+from fake_useragent import UserAgent
+import cloudscraper  # To handle Cloudflare protection
 
+# Initialize fake user agent for randomizing User-Agent header
+ua = UserAgent()
 
-headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-}
+# Cloudflare scraper that bypasses JS challenges
+scraper = cloudscraper.create_scraper()
 
 def get_memorial_links(base_url, max_pages=10):
     memorial_links = []
     for page in range(1, max_pages + 1):
         url = f"{base_url}&page={page}"
         print(f"Scraping page {page}: {url}")
-        response = requests.get(url, headers=headers)
+
+        # Randomize headers to mimic different browser requests
+        headers = {
+            "User-Agent": ua.random,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Connection": "keep-alive",
+        }
+        
+        response = scraper.get(url, headers=headers)
         if response.status_code != 200:
             print("Failed to retrieve page.")
             break
@@ -24,22 +37,29 @@ def get_memorial_links(base_url, max_pages=10):
                 full_url = "https://www.findagrave.com" + link["href"]
                 if full_url not in memorial_links:
                     memorial_links.append(full_url)
-        time.sleep(1)  # Be respectful to the server
+        
+        # Implement random sleep to mimic human behavior and avoid detection
+        time.sleep(random.uniform(1, 3))  # Sleep between 1 to 3 seconds
     return memorial_links
 
 def extract_lat_lon(memorial_url):
-    response = requests.get(memorial_url)
+    # Randomize headers to avoid blocking
+    headers = {
+        "User-Agent": ua.random,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Connection": "keep-alive",
+    }
+
+    response = scraper.get(memorial_url, headers=headers)
     
-    # Print the raw HTML content to see the full page source
-    print("HTML Content:")
-    print(response.text)  # This prints the entire HTML content of the page
-    
+    # Check if we successfully retrieved the page
     if response.status_code != 200:
         print("Failed to retrieve the page.")
         return None, None
     
     soup = BeautifulSoup(response.text, "html.parser")
-    print(soup.prettify())
+    
     # Look for the #gpsLocation element in the HTML
     gps_span = soup.select_one('#gpsLocation')
     if gps_span:
@@ -52,7 +72,6 @@ def extract_lat_lon(memorial_url):
     link = gps_span.find('a')
     if link:
         print("Found link in #gpsLocation:")
-        print(link.prettify())  # Pretty print the anchor tag
         href = link.get('href', '')
         if "google.com/maps" in href:
             print(f"Google Maps URL: {href}")
@@ -82,7 +101,7 @@ def main():
             lat, lon = extract_lat_lon(url)
             writer.writerow({"memorial_url": url, "latitude": lat, "longitude": lon})
             print(f"Extracted: {url} -> {lat}, {lon}")
-            time.sleep(1)
+            time.sleep(random.uniform(1, 3))  # Sleep between 1 to 3 seconds to avoid detection
 
 if __name__ == "__main__":
     main()
