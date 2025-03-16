@@ -119,8 +119,6 @@ def extract_memorial_data(memorial_url):
         parents_section = family_grid.select_one("ul[aria-labelledby='parentsLabel']")
         spouse_section = family_grid.select_one("ul[aria-labelledby='spouseLabel']")
 
-    if birth_date:
-        birth_date = parse_date(birth_date)
 
     parents = extract_family_members(parents_section) if parents_section else []
     spouses = extract_family_members(spouse_section) if spouse_section else []
@@ -144,6 +142,8 @@ def extract_memorial_data(memorial_url):
         "spouses": spouses
     }
 
+    if data["death_date"]:
+        data["death_date"] = parse_date(data["death_date"])
     # Extract bio safely
     bio_section = soup.select_one("#inscriptionValue")
     if bio_section:
