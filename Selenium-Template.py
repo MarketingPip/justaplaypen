@@ -20,15 +20,9 @@ display.start()
 chromedriver_autoinstaller.install()
 chrome_options = webdriver.ChromeOptions()
 options = [
-  # Define window size here
-   "--window-size=1200,1200",
-    "--ignore-certificate-errors"
- 
+    "--window-size=1200,1200",
+    "--ignore-certificate-errors",
     "--headless",
-    #"--disable-gpu",
-    #"--window-size=1920,1200",
-    #"--ignore-certificate-errors",
-    #"--disable-extensions",
     "--no-sandbox",
     "--disable-dev-shm-usage",
     '--remote-debugging-port=9222'
@@ -63,8 +57,6 @@ def get_memorial_links(base_url, max_pages=10):
     
     return memorial_links
 
-
-
 def parse_date(date_string):
     try:
         # Try to parse the date in formats like "4 Jun 1871" or "4 Jun, 1871"
@@ -90,13 +82,13 @@ def extract_family_members(family_section):
     return family_members
 
 def extract_memorial_data(memorial_url):
-    ua = UserAgent()
-    scraper = cloudscraper.create_scraper()
     headers = {"User-Agent": ua.random}
 
-    response = scraper.get(memorial_url, headers=headers)
-    if response.status_code != 200:
-        print(f"Failed to retrieve {memorial_url}")
+    try:
+        response = scraper.get(memorial_url, headers=headers)
+        response.raise_for_status()  # Will raise an error for 4xx/5xx status codes
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to retrieve {memorial_url}: {e}")
         return None
 
     soup = BeautifulSoup(response.text, "html.parser")
@@ -118,7 +110,6 @@ def extract_memorial_data(memorial_url):
     if family_grid:
         parents_section = family_grid.select_one("ul[aria-labelledby='parentsLabel']")
         spouse_section = family_grid.select_one("ul[aria-labelledby='spouseLabel']")
-
 
     parents = extract_family_members(parents_section) if parents_section else []
     spouses = extract_family_members(spouse_section) if spouse_section else []
@@ -144,6 +135,7 @@ def extract_memorial_data(memorial_url):
 
     if data["death_date"]:
         data["death_date"] = parse_date(data["death_date"])
+
     # Extract bio safely
     bio_section = soup.select_one("#inscriptionValue")
     if bio_section:
@@ -166,7 +158,7 @@ def extract_memorial_data(memorial_url):
 def main():
     base_url = "https://www.findagrave.com/memorial/search?location=Crediton%2C+Huron+County%2C+Ontario%2C+Canada&locationId=city_252602"
     memorial_links = get_memorial_links(base_url, max_pages=5)
-    driver.quit() # Close driver to free memory + we do not need it anymore.
+    driver.quit()  # Close driver to free memory + we do not need it anymore.
     
     with open("findagrave_data.csv", "w", newline="") as csvfile:
         fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "bio", "gps", "image_url", "parents", "spouses"]
