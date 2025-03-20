@@ -77,7 +77,11 @@ def parse_date(date_string):
         # Try to parse the date in formats like "4 Jun 1871" or "4 Jun, 1871"
         return datetime.strptime(date_string, "%d %b %Y").strftime("%Y-%m-%d")
     except ValueError:
-        return None  # Return None if date format is not recognized
+        try:
+            # If the first format fails, try parsing just the year, e.g., "1871"
+            return datetime.strptime(date_string, "%Y").strftime("%Y-%m-%d")
+        except ValueError:
+            return None  # Return None if the date format is not recognized
 
 def extract_family_members(family_section):
     family_members = []
