@@ -136,6 +136,8 @@ def extract_memorial_data(memorial_url):
     
     parents_section = None
     spouse_section = None
+    children_section = None
+    sibling_section = None
 
     if family_grid:
         parents_section = family_grid.select_one("ul[aria-labelledby='parentsLabel']")
