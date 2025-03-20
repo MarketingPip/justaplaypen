@@ -12,6 +12,7 @@ from fake_useragent import UserAgent
 import cloudscraper
 from datetime import datetime
 import json
+import re
 
 # Initialize virtual display for headless mode
 display = Display(visible=0, size=(800, 800))  
@@ -72,16 +73,24 @@ def get_memorial_links(base_url, max_pages=10):
 
 
 
+
 def parse_date(date_string):
     try:
-        # Try to parse the date in formats like "4 Jun 1871" or "4 Jun, 1871"
+        # Case 1: Full date with age, e.g., "26 May 1928 (aged 81)"
+        date_string = re.sub(r"\(aged.*\)", "", date_string).strip()  # Remove age part
         return datetime.strptime(date_string, "%d %b %Y").strftime("%Y-%m-%d")
     except ValueError:
         try:
-            # If the first format fails, try parsing just the year, e.g., "1871"
-            return datetime.strptime(date_string, "%Y").strftime("%Y-%m-%d")
+            # Case 2: Only year, e.g., "1928"
+            return datetime.strptime(date_string, "%Y").strftime("%Y-00-00")
         except ValueError:
-            return None  # Return None if the date format is not recognized
+            try:
+                # Case 3: Approximate year, e.g., "Abt. 1928"
+                if date_string.lower().startswith("abt."):
+                    return datetime.strptime(date_string[4:].strip(), "%Y").strftime("%Y-00-00")
+                return None  # Return None if the date format is not recognized
+            except ValueError:
+                return None  # Return None if the date format is not recognized
 
 def extract_family_members(family_section):
     family_members = []
