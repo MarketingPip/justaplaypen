@@ -48,6 +48,8 @@ def write_safe_row(writer, data):
     """ Converts nested lists to JSON strings before writing to CSV """
     data["parents"] = json.dumps(data["parents"]) if data["parents"] else "[]"
     data["spouses"] = json.dumps(data["spouses"]) if data["spouses"] else "[]"
+    data["children"] = json.dumps(data["children"]) if data["children"] else "[]"
+    data["siblings"] = json.dumps(data["siblings"]) if data["siblings"] else "[]"
     writer.writerow(data)
 
 def get_memorial_links(base_url, max_pages=10):
@@ -138,10 +140,14 @@ def extract_memorial_data(memorial_url):
     if family_grid:
         parents_section = family_grid.select_one("ul[aria-labelledby='parentsLabel']")
         spouse_section = family_grid.select_one("ul[aria-labelledby='spouseLabel']")
+        children_section = family_grid.select_one("ul[aria-labelledby='childrenLabel']")
+        sibling_section = family_grid.select_one("ul[aria-labelledby='siblingLabel']")
 
 
     parents = extract_family_members(parents_section) if parents_section else []
     spouses = extract_family_members(spouse_section) if spouse_section else []
+    children = extract_family_members(children_section) if children_section else []
+    siblings = extract_family_members(sibling_section) if sibling_section else []
 
     # Extract other data safely
     def safe_text(selector):
@@ -159,7 +165,9 @@ def extract_memorial_data(memorial_url):
         "gps": None,
         "image_url": image_url,
         "parents": parents,
-        "spouses": spouses
+        "spouses": spouses,
+        "children" : children,
+        "siblings" : siblings
     }
 
     if data["death_date"]:
@@ -189,7 +197,7 @@ def main():
     driver.quit() # Close driver to free memory + we do not need it anymore.
     
     with open("findagrave_data.csv", "w", newline="") as csvfile:
-        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "bio", "gps", "image_url", "parents", "spouses"]
+        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "bio", "gps", "image_url", "parents", "spouses", "children", "siblings"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
         writer.writeheader()
         
