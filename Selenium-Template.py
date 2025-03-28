@@ -138,18 +138,21 @@ def extract_memorial_data(memorial_url):
     spouse_section = None
     children_section = None
     sibling_section = None
+    half_sibling_section = None
 
     if family_grid:
         parents_section = family_grid.select_one("ul[aria-labelledby='parentsLabel']")
         spouse_section = family_grid.select_one("ul[aria-labelledby='spouseLabel']")
         children_section = family_grid.select_one("ul[aria-labelledby='childrenLabel']")
         sibling_section = family_grid.select_one("ul[aria-labelledby='siblingLabel']")
+        half_sibling_section = family_grid.select_one("ul[aria-labelledby='halfSibLabel']")
 
 
     parents = extract_family_members(parents_section) if parents_section else []
     spouses = extract_family_members(spouse_section) if spouse_section else []
     children = extract_family_members(children_section) if children_section else []
     siblings = extract_family_members(sibling_section) if sibling_section else []
+    half_siblings = extract_family_members(half_sibling_section) if half_sibling_section else []
 
     # Extract other data safely
     def safe_text(selector):
@@ -169,7 +172,8 @@ def extract_memorial_data(memorial_url):
         "parents": parents,
         "spouses": spouses,
         "children" : children,
-        "siblings" : siblings
+        "siblings" : siblings,
+        "half_siblings": half_siblings
     }
 
     if data["death_date"]:
