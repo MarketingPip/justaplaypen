@@ -163,10 +163,10 @@ def extract_memorial_data(memorial_url):
     photos_count = soup.select_one(".photosCount")
     if photos_count:
       count = int(photos_count.text.strip())
-       if count > 1:
-         print("There are more than 1 photo.")
-       else:
-         print("There is 1 or fewer photos.")
+      if count > 1:     
+        print("There are more than 1 photo.")
+      else:
+        print("There is 1 or fewer photos.")
 
 
     data = {
