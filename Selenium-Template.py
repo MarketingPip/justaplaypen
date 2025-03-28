@@ -161,7 +161,7 @@ def extract_memorial_data(memorial_url):
 
     data = {
         "memorial_url": memorial_url,
-        "name": safe_text("#bio-name > b"),
+        "name": safe_text("#bio-name > b") or safe_text("#bio-name"),
         "prefix": safe_text("#bio-name > span"),
         "title": safe_text("#bio-name > b > span.visually-hidden"),
         "birth_date": birth_date,
