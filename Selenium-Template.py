@@ -111,6 +111,29 @@ def extract_family_members(family_section):
             })
     return family_members
 
+
+def get_memorial_images(base_url, exclude_image_url=None):
+    driver.get(base_url)
+    last_height = driver.execute_script("return document.body.scrollHeight")
+    
+    while True:
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(random.uniform(2, 4))  # Allow content to load
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        if new_height == last_height:
+            break
+        last_height = new_height
+    
+    # Extract image URLs from the specified selector
+    image_urls = []
+    images = driver.find_elements("css selector", "#TabPhotos > div.section-photos.section-board > div > div > div:nth-child(n) > div > button > img")
+    for img in images:
+        src = img.get_attribute("src")
+        if src and (exclude_image_url is None or src != exclude_image_url) and src not in image_urls:
+            image_urls.append(src)
+    
+    return image_urls
+
 def extract_memorial_data(memorial_url):
     ua = UserAgent()
     scraper = cloudscraper.create_scraper()
@@ -164,7 +187,7 @@ def extract_memorial_data(memorial_url):
     if photos_count:
       count = int(photos_count.text.strip())
       if count > 1:     
-        print("There are more than 1 photo.")
+        get_memorial_images()
       else:
         print("There is 1 or fewer photos.")
 
