@@ -161,11 +161,14 @@ def extract_memorial_data(memorial_url):
 
     data = {
         "memorial_url": memorial_url,
-        "name": safe_text("#bio-name"),
+        "name": safe_text("#bio-name > b"),
+        "prefix": safe_text("#bio-name > span"),
+        "title": safe_text("#bio-name > b > span.visually-hidden"),
         "birth_date": birth_date,
         "death_date": safe_text("#deathDateLabel"),
         "cemetery": safe_text("#cemeteryNameLabel"),
         "location": safe_text("#cemeteryCityName"),
+        "plot_value": safe_text("#plotValueLabel"),
         "bio": None,
         "gps": None,
         "image_url": image_url,
