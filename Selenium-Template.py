@@ -119,7 +119,7 @@ def get_memorial_images(base_url, exclude_image_url=None):
     headers = {"User-Agent": ua.random}
 
     # Send GET request to the URL
-    response = scraper.get(base_url, headers=headers)
+    response = scraper.get(base_url, headers=headers, timeout=300)
     if response.status_code != 200:
         print(f"Failed to retrieve {base_url}")
         return None
