@@ -129,7 +129,7 @@ def get_memorial_images(base_url, exclude_image_url=None):
 
     # Extract image URLs from the specified selector
     image_urls = []
-    images = soup.select("#TabPhotos > div.section-photos.section-board > div > div > div:nth-child(n) > div > button > img")
+    images = soup.select("#TabPhotos > div.section-photos.section-board img")
     
     for img in images:
         src = img.get("src")
