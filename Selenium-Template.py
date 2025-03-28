@@ -112,10 +112,11 @@ def extract_family_members(family_section):
     return family_members
 
 
+ua = UserAgent()
+scraper = cloudscraper.create_scraper()
+
 
 def get_memorial_images(base_url, exclude_image_url=None):
-    ua = UserAgent()
-    scraper = cloudscraper.create_scraper()
     headers = {"User-Agent": ua.random}
 
     # Send GET request to the URL
@@ -139,8 +140,6 @@ def get_memorial_images(base_url, exclude_image_url=None):
     return image_urls
 
 def extract_memorial_data(memorial_url):
-    ua = UserAgent()
-    scraper = cloudscraper.create_scraper()
     headers = {"User-Agent": ua.random}
 
     response = scraper.get(memorial_url, headers=headers)
