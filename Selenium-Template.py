@@ -133,7 +133,7 @@ def get_memorial_images(base_url, exclude_image_url=None):
     images = soup.select("#TabPhotos > div.section-photos.section-board img")
     
     for img in images:
-        src = img.get("src")
+        src = img.get("data-src")
         if src and (exclude_image_url is None or src != exclude_image_url) and src not in image_urls:
             image_urls.append(src)
 
