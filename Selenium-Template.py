@@ -193,6 +193,8 @@ def extract_memorial_data(memorial_url):
       count = int(photos_count.text.strip())
       if count > 1:     
         photos = get_memorial_images(memorial_url + "/photo", image_url)
+        print(memorial_url + "/photo")
+        print(photos)
         print("Fetching extra photos")
 
 
