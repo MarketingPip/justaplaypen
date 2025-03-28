@@ -179,7 +179,7 @@ def extract_memorial_data(memorial_url):
     if data["death_date"]:
         data["death_date"] = parse_date(data["death_date"])
     # Extract bio safely
-    bio_section = soup.select_one("#inscriptionValue")
+    bio_section = soup.select_one("#inscriptionValue") or soup.select_one("#fullBio")
     if bio_section:
         data["bio"] = bio_section.decode_contents().replace('<br>', '\n').strip()
 
