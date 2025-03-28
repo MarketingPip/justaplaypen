@@ -112,26 +112,30 @@ def extract_family_members(family_section):
     return family_members
 
 
+
 def get_memorial_images(base_url, exclude_image_url=None):
-    driver.get(base_url)
-    last_height = driver.execute_script("return document.body.scrollHeight")
-    
-    while True:
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(random.uniform(2, 4))  # Allow content to load
-        new_height = driver.execute_script("return document.body.scrollHeight")
-        if new_height == last_height:
-            break
-        last_height = new_height
-    
+    ua = UserAgent()
+    scraper = cloudscraper.create_scraper()
+    headers = {"User-Agent": ua.random}
+
+    # Send GET request to the URL
+    response = scraper.get(base_url, headers=headers)
+    if response.status_code != 200:
+        print(f"Failed to retrieve {base_url}")
+        return None
+
+    # Parse the page content with BeautifulSoup
+    soup = BeautifulSoup(response.text, "html.parser")
+
     # Extract image URLs from the specified selector
     image_urls = []
-    images = driver.find_elements("css selector", "#TabPhotos > div.section-photos.section-board > div > div > div:nth-child(n) > div > button > img")
+    images = soup.select("#TabPhotos > div.section-photos.section-board > div > div > div:nth-child(n) > div > button > img")
+    
     for img in images:
-        src = img.get_attribute("src")
+        src = img.get("src")
         if src and (exclude_image_url is None or src != exclude_image_url) and src not in image_urls:
             image_urls.append(src)
-    
+
     return image_urls
 
 def extract_memorial_data(memorial_url):
@@ -184,12 +188,12 @@ def extract_memorial_data(memorial_url):
 
 
     photos_count = soup.select_one(".photosCount")
+    photos = []
     if photos_count:
       count = int(photos_count.text.strip())
       if count > 1:     
-        get_memorial_images()
-      else:
-        print("There is 1 or fewer photos.")
+        photos = get_memorial_images(memorial_url + "/photo", image_url)
+        print("Fetching extra photos")
 
 
     data = {
@@ -209,7 +213,8 @@ def extract_memorial_data(memorial_url):
         "spouses": spouses,
         "children" : children,
         "siblings" : siblings,
-        "half_siblings": half_siblings
+        "half_siblings": half_siblings,
+        "photos": photos
     }
 
     if data["death_date"]:
@@ -239,7 +244,7 @@ def main():
     driver.quit() # Close driver to free memory + we do not need it anymore.
     
     with open("findagrave_data.csv", "w", newline="") as csvfile:
-        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "bio", "gps", "image_url", "parents", "spouses", "children", "siblings", "half_siblings", "plot_value", "title", "prefix"]
+        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "bio", "gps", "image_url", "parents", "spouses", "children", "siblings", "half_siblings", "plot_value", "title", "prefix", "photos"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
         writer.writeheader()
         
