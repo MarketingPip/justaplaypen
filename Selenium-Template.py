@@ -206,7 +206,7 @@ def main():
     driver.quit() # Close driver to free memory + we do not need it anymore.
     
     with open("findagrave_data.csv", "w", newline="") as csvfile:
-        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "bio", "gps", "image_url", "parents", "spouses", "children", "siblings"]
+        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "bio", "gps", "image_url", "parents", "spouses", "children", "siblings", "half_siblings", "plot_value", "title", "prefix"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
         writer.writeheader()
         
