@@ -159,6 +159,16 @@ def extract_memorial_data(memorial_url):
         element = soup.select_one(selector)
         return element.text.strip() if element else None
 
+
+    photos_count = soup.select_one(".photosCount")
+    if photos_count:
+      count = int(photos_count.text.strip())
+       if count > 1:
+         print("There are more than 1 photo.")
+       else:
+         print("There is 1 or fewer photos.")
+
+
     data = {
         "memorial_url": memorial_url,
         "name": safe_text("#bio-name > b") or safe_text("#bio-name"),
