@@ -117,27 +117,31 @@ scraper = cloudscraper.create_scraper()
 
 
 def get_memorial_images(base_url, exclude_image_url=None):
-    headers = {"User-Agent": ua.random}
+    driver = webdriver.Chrome(options=chrome_options)
 
-    # Send GET request to the URL
-    response = scraper.get(base_url, headers=headers, timeout=300)
-    if response.status_code != 200:
-        print(f"Failed to retrieve {base_url}")
-        return None
+    try:
+        # Open the provided URL
+        driver.get(base_url)
 
-    # Parse the page content with BeautifulSoup
-    soup = BeautifulSoup(response.text, "html.parser")
+        # Wait until images appear (use the CSS selector for the image elements)
+        WebDriverWait(driver, 30).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#TabPhotos > div.section-photos.section-board > div > div > div:nth-child(n) > div > button > img"))
+        )
 
-    # Extract image URLs from the specified selector
-    image_urls = []
-    images = soup.select("#TabPhotos > div.section-photos.section-board img")
+        # Extract image URLs from the specified selector
+        image_urls = []
+        images = driver.find_elements(By.CSS_SELECTOR, "#TabPhotos > div.section-photos.section-board > div > div > div:nth-child(n) > div > button > img")
+        
+        for img in images:
+            src = img.get_attribute("src")
+            if src and (exclude_image_url is None or src != exclude_image_url) and src not in image_urls:
+                image_urls.append(src)
+
+        return image_urls
     
-    for img in images:
-        src = img.get("data-src")
-        if src and (exclude_image_url is None or src != exclude_image_url) and src not in image_urls:
-            image_urls.append(src)
-
-    return image_urls
+    finally:
+        # Ensure the WebDriver quits properly after execution
+        driver.quit()
 
 def extract_memorial_data(memorial_url):
     headers = {"User-Agent": ua.random}
