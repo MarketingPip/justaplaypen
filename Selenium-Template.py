@@ -113,8 +113,7 @@ def extract_family_members(family_section):
     return family_members
 
 
-ua = UserAgent()
-scraper = cloudscraper.create_scraper()
+
 
 
 def get_memorial_images(base_url, exclude_image_url=None):
@@ -126,6 +125,7 @@ def get_memorial_images(base_url, exclude_image_url=None):
         driver.get(base_url)
 
         # Wait until images appear (use the CSS selector for the image elements)
+        time.sleep(random.uniform(2, 4))  # Allow content to load
         WebDriverWait(driver, 30).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#TabPhotos > div.section-photos.section-board > div > div > div:nth-child(n) > div > button > img"))
         )
