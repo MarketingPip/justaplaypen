@@ -118,7 +118,7 @@ scraper = cloudscraper.create_scraper()
 
 
 def get_memorial_images(base_url, exclude_image_url=None):
-    display.start()
+   #  display.start()
     driver = webdriver.Chrome(options=chrome_options)
 
     try:
@@ -144,7 +144,7 @@ def get_memorial_images(base_url, exclude_image_url=None):
     finally:
         # Ensure the WebDriver quits properly after execution
         driver.quit()
-        display.stop()
+      #  display.stop()
 
 def extract_memorial_data(memorial_url):
     headers = {"User-Agent": ua.random}
@@ -250,7 +250,7 @@ def main():
     base_url = "https://www.findagrave.com/memorial/search?location=Crediton%2C+Huron+County%2C+Ontario%2C+Canada&locationId=city_252602"
     memorial_links = get_memorial_links(base_url, max_pages=5)
     driver.quit() # Close driver to free memory + we do not need it anymore.
-    display.stop()
+   # display.stop()
     
     with open("findagrave_data.csv", "w", newline="") as csvfile:
         fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "bio", "gps", "image_url", "parents", "spouses", "children", "siblings", "half_siblings", "plot_value", "title", "prefix", "photos"]
