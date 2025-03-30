@@ -125,41 +125,47 @@ def get_memorial_images(base_url, exclude_image_url=None):
     driver = webdriver.Chrome(options=chrome_options)
 
     try:
-        # Open the provided URL
         driver.get(base_url)
-
-        # Wait until the image elements appear (use the CSS selector for the image elements and links)
-        time.sleep(random.uniform(2, 4))  # Allow content to load
-        WebDriverWait(driver, 60).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#TabPhotos > div.section-photos.section-board > div > div > div"))
-        )
-
-        # Extract data from the specified selectors
-        images_data = []
-        image_elements = driver.find_elements(By.CSS_SELECTOR, "#TabPhotos > div.section-photos.section-board > div > div > div")
         
+        # Wait for images to load with robust timeout handling
+        try:
+            WebDriverWait(driver, 20).until(
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#TabPhotos .section-photos .section-board div div div"))
+            )
+        except TimeoutException:
+            print("Timeout: No images found.")
+            return []
+
+        images_data = []
+        image_elements = driver.find_elements(By.CSS_SELECTOR, "#TabPhotos .section-photos .section-board div div div")
+
         for element in image_elements:
-            # Extract image src (from <img> tag inside button)
-            img_tag = element.find_element(By.CSS_SELECTOR, "div > button > img")
-            img_src = img_tag.get_attribute("src") if img_tag else None
+            try:
+                img_tag = element.find_element(By.CSS_SELECTOR, "div > button > img")
+                img_src = img_tag.get_attribute("src") if img_tag else None
 
-            # Extract contributor href and text (from <a> tag inside <p> tag)
-            contributor_link = element.find_element(By.CSS_SELECTOR, "div.card-body.d-flex.flex-column > p > a")
-            contributor_href = contributor_link.get_attribute("href") if contributor_link else None
-            contributor_text = contributor_link.text if contributor_link else None
+                contributor_link = element.find_elements(By.CSS_SELECTOR, "div.card-body.d-flex.flex-column > p > a")
+                contributor_href = contributor_link[0].get_attribute("href") if contributor_link else None
+                contributor_text = contributor_link[0].text if contributor_link else None
 
-            # Avoid duplicates and unwanted images
-            if img_src and (exclude_image_url is None or img_src != exclude_image_url):
-                images_data.append({
-                    "src": img_src,
-                    "contributor_text": contributor_text,
-                    "contributor_href": contributor_href
-                })
+                if img_src and (exclude_image_url is None or img_src != exclude_image_url):
+                    images_data.append({
+                        "src": img_src,
+                        "contributor_text": contributor_text,
+                        "contributor_href": contributor_href
+                    })
+
+            except NoSuchElementException:
+                print("Skipping: Missing image or contributor link.")
+                continue
 
         return images_data
-    
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return []
+
     finally:
-        # Ensure the WebDriver quits properly after execution
         driver.quit()
 
 def extract_memorial_data(memorial_url):
