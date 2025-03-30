@@ -53,6 +53,8 @@ def write_safe_row(writer, data):
     data["spouses"] = json.dumps(data["spouses"]) if data["spouses"] else "[]"
     data["children"] = json.dumps(data["children"]) if data["children"] else "[]"
     data["siblings"] = json.dumps(data["siblings"]) if data["siblings"] else "[]"
+    data["half_siblings"] = json.dumps(data["half_siblings"]) if data["half_siblings"] else "[]"
+    data["photos"] = json.dumps(data["photos"]) if data["photos"] else "[]"
     writer.writerow(data)
 
 def get_memorial_links(base_url, max_pages=10):
@@ -119,34 +121,45 @@ def extract_family_members(family_section):
 
 
 def get_memorial_images(base_url, exclude_image_url=None):
-   #  display.start()
     driver = webdriver.Chrome(options=chrome_options)
 
     try:
         # Open the provided URL
         driver.get(base_url)
 
-        # Wait until images appear (use the CSS selector for the image elements)
+        # Wait until the image elements appear (use the CSS selector for the image elements and links)
         time.sleep(random.uniform(2, 4))  # Allow content to load
         WebDriverWait(driver, 30).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#TabPhotos > div.section-photos.section-board > div > div > div:nth-child(n) > div > button > img"))
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#TabPhotos > div.section-photos.section-board > div > div > div"))
         )
 
-        # Extract image URLs from the specified selector
-        image_urls = []
-        images = driver.find_elements(By.CSS_SELECTOR, "#TabPhotos > div.section-photos.section-board > div > div > div:nth-child(n) > div > button > img")
+        # Extract data from the specified selectors
+        images_data = []
+        image_elements = driver.find_elements(By.CSS_SELECTOR, "#TabPhotos > div.section-photos.section-board > div > div > div")
         
-        for img in images:
-            src = img.get_attribute("src")
-            if src and (exclude_image_url is None or src != exclude_image_url) and src not in image_urls:
-                image_urls.append(src)
+        for element in image_elements:
+            # Extract image src (from <img> tag inside button)
+            img_tag = element.find_element(By.CSS_SELECTOR, "div > button > img")
+            img_src = img_tag.get_attribute("src") if img_tag else None
 
-        return image_urls
+            # Extract contributor href and text (from <a> tag inside <p> tag)
+            contributor_link = element.find_element(By.CSS_SELECTOR, "div.card-body.d-flex.flex-column > p > a")
+            contributor_href = contributor_link.get_attribute("href") if contributor_link else None
+            contributor_text = contributor_link.text if contributor_link else None
+
+            # Avoid duplicates and unwanted images
+            if img_src and (exclude_image_url is None or img_src != exclude_image_url):
+                images_data.append({
+                    "src": img_src,
+                    "contributor_text": contributor_text,
+                    "contributor_href": contributor_href
+                })
+
+        return images_data
     
     finally:
         # Ensure the WebDriver quits properly after execution
         driver.quit()
-      #  display.stop()
 
 def extract_memorial_data(memorial_url):
     headers = {"User-Agent": ua.random}
@@ -168,7 +181,12 @@ def extract_memorial_data(memorial_url):
 
     # Extract family members (parents and spouses)
     family_grid = soup.select_one("#family-grid")
-    
+
+
+
+    image_credits_tag = soup.select_one("#profile-photo > p > a")
+    image_credits_url = image_credits_tag.get("href") if image_credits_tag else None
+  
     parents_section = None
     spouse_section = None
     children_section = None
@@ -219,6 +237,8 @@ def extract_memorial_data(memorial_url):
         "bio": None,
         "gps": None,
         "image_url": image_url,
+        "image_credits":safe_text("#profile-photo > p > a"),
+        "image_credits_url":image_credits_url,
         "parents": parents,
         "spouses": spouses,
         "children" : children,
@@ -255,7 +275,7 @@ def main():
    # display.stop()
     
     with open("findagrave_data.csv", "w", newline="") as csvfile:
-        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "bio", "gps", "image_url", "parents", "spouses", "children", "siblings", "half_siblings", "plot_value", "title", "prefix", "photos"]
+        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "bio", "gps", "image_url", "image_credits", "image_credits_url", "parents", "spouses", "children", "siblings", "half_siblings", "plot_value", "title", "prefix", "photos"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
         writer.writeheader()
         
