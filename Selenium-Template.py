@@ -130,14 +130,14 @@ def get_memorial_images(base_url, exclude_image_url=None):
         # Wait for images to load with robust timeout handling
         try:
             WebDriverWait(driver, 20).until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#TabPhotos .section-photos .section-board div div div"))
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#TabPhotos .section-photos .section-board .card"))
             )
         except TimeoutException:
             print("Timeout: No images found.")
             return []
 
         images_data = []
-        image_elements = driver.find_elements(By.CSS_SELECTOR, "#TabPhotos .section-photos .section-board div div div")
+        image_elements = driver.find_elements(By.CSS_SELECTOR, "#TabPhotos .section-photos .section-board .card")
 
         for element in image_elements:
             try:
