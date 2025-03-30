@@ -122,14 +122,14 @@ def extract_family_members(family_section):
  
 
 def get_memorial_images(base_url, exclude_image_url=None):
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    driver = webdriver.Chrome(options=chrome_options)
 
     try:
         driver.get(base_url)
         
         # Wait for images to load with robust timeout handling
         try:
-            WebDriverWait(driver, 20).until(
+            WebDriverWait(driver, 60).until(
                 EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#TabPhotos > div.section-photos.section-board > div > div > div:nth-child(n)"))
             )
         except TimeoutException:
