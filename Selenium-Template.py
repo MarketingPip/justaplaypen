@@ -129,7 +129,7 @@ def get_memorial_images(base_url, exclude_image_url=None):
 
         # Wait until the image elements appear (use the CSS selector for the image elements and links)
         time.sleep(random.uniform(2, 4))  # Allow content to load
-        WebDriverWait(driver, 30).until(
+        WebDriverWait(driver, 60).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#TabPhotos > div.section-photos.section-board > div > div > div"))
         )
 
