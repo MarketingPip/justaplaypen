@@ -225,7 +225,7 @@ def extract_memorial_data(memorial_url):
     if photos_count:
       count = int(photos_count.text.strip())
       if count > 1:     
-        photos = get_memorial_images(memorial_url + "/photo", image_url)
+        photos = True
         print(memorial_url + "/photo")
         print(photos)
         print("Fetching extra photos")
@@ -241,6 +241,7 @@ def extract_memorial_data(memorial_url):
         "cemetery": safe_text("#cemeteryNameLabel"),
         "location": safe_text("#cemeteryCityName"),
         "plot_value": safe_text("#plotValueLabel"),
+        "part_bio": safe_text("#partBio"),
         "bio": None,
         "gps": None,
         "image_url": image_url,
@@ -282,7 +283,7 @@ def main():
    # display.stop()
     
     with open("findagrave_data.csv", "w", newline="") as csvfile:
-        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "bio", "gps", "image_url", "image_credits", "image_credits_url", "parents", "spouses", "children", "siblings", "half_siblings", "plot_value", "title", "prefix", "photos"]
+        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "part_bio", "bio", "gps", "image_url", "image_credits", "image_credits_url", "parents", "spouses", "children", "siblings", "half_siblings", "plot_value", "title", "prefix", "photos"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
         writer.writeheader()
         
