@@ -119,7 +119,7 @@ def extract_family_members(family_section):
 
 
 
-
+ 
 
 def get_memorial_images(base_url, exclude_image_url=None):
     driver = webdriver.Chrome(options=chrome_options)
@@ -130,21 +130,21 @@ def get_memorial_images(base_url, exclude_image_url=None):
         # Wait for images to load with robust timeout handling
         try:
             WebDriverWait(driver, 20).until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#TabPhotos .section-photos .section-board .card"))
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#TabPhotos > div.section-photos.section-board > div > div > div:nth-child(n)"))
             )
         except TimeoutException:
             print("Timeout: No images found.")
             return []
 
         images_data = []
-        image_elements = driver.find_elements(By.CSS_SELECTOR, "#TabPhotos .section-photos .section-board .card")
+        image_elements = driver.find_elements(By.CSS_SELECTOR, "#TabPhotos > div.section-photos.section-board > div > div > div:nth-child(n)")
 
         for element in image_elements:
             try:
                 img_tag = element.find_element(By.CSS_SELECTOR, "div > button > img")
                 img_src = img_tag.get_attribute("src") if img_tag else None
 
-                contributor_link = element.find_elements(By.CSS_SELECTOR, "div.card-body.d-flex.flex-column > p > a")
+                contributor_link = element.find_elements(By.CSS_SELECTOR, "div > div.card-body.d-flex.flex-column > p > a")
                 contributor_href = contributor_link[0].get_attribute("href") if contributor_link else None
                 contributor_text = contributor_link[0].text if contributor_link else None
 
