@@ -4,7 +4,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, SessionNotCreatedException
 import chromedriver_autoinstaller
 from pyvirtualdisplay import Display
 import requests
@@ -31,7 +31,7 @@ options = [
     "--ignore-certificate-errors"
  
     "--headless",
-    #"--disable-gpu",
+    "--disable-gpu",
     #"--window-size=1920,1200",
     #"--ignore-certificate-errors",
     #"--disable-extensions",
@@ -122,7 +122,7 @@ def extract_family_members(family_section):
  
 
 def get_memorial_images(base_url, exclude_image_url=None):
-    driver = webdriver.Chrome(options=chrome_options)
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
     try:
         driver.get(base_url)
