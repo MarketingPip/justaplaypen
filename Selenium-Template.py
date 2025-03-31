@@ -233,7 +233,8 @@ def extract_memorial_data(memorial_url):
 
     data = {
         "memorial_url": memorial_url,
-        "name": safe_text("#bio-name > b") or safe_text("#bio-name"),
+        "name": safe_text("#bio-name") and safe_text("#bio-name").replace("VVeteran", ""),
+        "maiden_name": safe_text("#bio-name > i"),
         "prefix": safe_text("#bio-name > span"),
         "title": safe_text("#bio-name > b > span.visually-hidden"),
         "birth_date": birth_date,
@@ -243,6 +244,7 @@ def extract_memorial_data(memorial_url):
         "plot_value": safe_text("#plotValueLabel"),
         "part_bio": safe_text("#partBio"),
         "bio": None,
+        "inscription": safe_text("#inscriptionValue"),
         "gps": None,
         "image_url": image_url,
         "image_credits":safe_text("#profile-photo > p > a"),
@@ -302,7 +304,7 @@ def fetchPhotos():
 
     # After all rows are processed, write the updated rows back to the CSV file
     with open("findagrave_data.csv", "w", newline="") as csvfile_append:
-        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "part_bio", "bio", "gps", "image_url", "image_credits", "image_credits_url", "parents", "spouses", "children", "siblings", "half_siblings", "plot_value", "title", "prefix", "photos"]
+        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "part_bio", "bio", "gps", "image_url", "image_credits", "image_credits_url", "parents", "spouses", "children", "siblings", "half_siblings", "plot_value", "title", "prefix", "photos", "maiden_name", "inscription"]
         writer = csv.DictWriter(csvfile_append, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
         
         writer.writeheader()  # Write the header
@@ -319,7 +321,7 @@ def main():
    # display.stop()
     
     with open("findagrave_data.csv", "w", newline="") as csvfile:
-        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "part_bio", "bio", "gps", "image_url", "image_credits", "image_credits_url", "parents", "spouses", "children", "siblings", "half_siblings", "plot_value", "title", "prefix", "photos"]
+        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "part_bio", "bio", "gps", "image_url", "image_credits", "image_credits_url", "parents", "spouses", "children", "siblings", "half_siblings", "plot_value", "title", "prefix", "photos", "maiden_name", "inscription"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
         writer.writeheader()
         
@@ -331,5 +333,6 @@ def main():
                 time.sleep(random.uniform(1, 3))
 
 if __name__ == "__main__":
-    fetchPhotos()
+    main()
+    #fetchPhotos()
     #main()
