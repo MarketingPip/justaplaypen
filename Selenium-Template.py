@@ -278,7 +278,9 @@ def extract_memorial_data(memorial_url):
 
 
 
-def fetchPhotos():
+vdef fetchPhotos():
+    updated_rows = []  # List to store updated rows
+
     with open("findagrave_data.csv", "r", newline="") as csvfile:
         # Create a CSV reader to read the data
         reader = csv.DictReader(csvfile)
@@ -287,26 +289,29 @@ def fetchPhotos():
         for row in reader:
             memorial_url = row.get("memorial_url")  # Get the memorial URL from the row
             if memorial_url:
-                # Extract data using the memorial URL
-                data = extract_memorial_data(memorial_url)
+                if row.get('photos') == 'true':  # Ensure we check if 'photos' is 'true' in the current row
+                    # Get the image result from get_memorial_images (assuming 'data' is your row here)
+                    image_result = get_memorial_images(memorial_url + "/photo", row.get('image_url'))  
+                    row['photos'] = image_result  # Replace 'photos' in the row with the result from get_memorial_images
+                    print(image_result)
                 
-                if data:
-                    # Check if 'photos' is true in the data
-                    if data.get('photos') == 'true':  # Ensure we compare to string 'true' if it's a string
-                        # Get the image result from get_memorial_images
-                        image_result = get_memorial_images(memorial_url + "/photo", data.get('image_url'))  
-                        data['photos'] = image_result  # Replace 'photo' with the result from get_memorial_images
-                        print(image_result)
-                    
-                    # Open the CSV again for appending and write the updated data
-                    with open("findagrave_data.csv", "a", newline="") as csvfile_append:
-                        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "part_bio", "bio", "gps", "image_url", "image_credits", "image_credits_url", "parents", "spouses", "children", "siblings", "half_siblings", "plot_value", "title", "prefix", "photos"]
-                        writer = csv.DictWriter(csvfile_append, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
-                        write_safe_row(writer, data)
-                        print(f"Extracted: {data}")
-                    
-                    # Sleep between requests to avoid hitting the server too fast
-                    time.sleep(random.uniform(1, 3))
+                updated_rows.append(row)  # Add the updated row to the list
+                
+                # Sleep between requests to avoid hitting the server too fast
+                time.sleep(random.uniform(1, 3))
+
+    # After all rows are processed, write the updated rows back to the CSV file
+    with open("findagrave_data.csv", "w", newline="") as csvfile_append:
+        fieldnames = ["memorial_url", "name", "birth_date", "death_date", "cemetery", "location", "part_bio", "bio", "gps", "image_url", "image_credits", "image_credits_url", "parents", "spouses", "children", "siblings", "half_siblings", "plot_value", "title", "prefix", "photos"]
+        writer = csv.DictWriter(csvfile_append, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+        
+        writer.writeheader()  # Write the header
+        for updated_row in updated_rows:
+            writer.writerow(updated_row)  # Write each updated row
+
+    print(f"Updated {len(updated_rows)} rows with new photos.")
+
+
 def main():
     base_url = "https://www.findagrave.com/memorial/search?location=Crediton%2C+Huron+County%2C+Ontario%2C+Canada&locationId=city_252602"
     memorial_links = get_memorial_links(base_url, max_pages=5)
