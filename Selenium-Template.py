@@ -295,7 +295,8 @@ def fetchPhotos():
                     if data.get('photos') == 'true':  # Ensure we compare to string 'true' if it's a string
                         # Get the image result from get_memorial_images
                         image_result = get_memorial_images(memorial_url + "/photo", data.get('image_url'))  
-                        data['image_url'] = image_result  # Replace 'photo' with the result from get_memorial_images
+                        data['photos'] = image_result  # Replace 'photo' with the result from get_memorial_images
+                        print(image_result)
                     
                     # Open the CSV again for appending and write the updated data
                     with open("findagrave_data.csv", "a", newline="") as csvfile_append:
