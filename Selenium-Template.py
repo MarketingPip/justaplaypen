@@ -278,7 +278,7 @@ def extract_memorial_data(memorial_url):
 
 
 
-vdef fetchPhotos():
+def fetchPhotos():
     updated_rows = []  # List to store updated rows
 
     with open("findagrave_data.csv", "r", newline="") as csvfile:
