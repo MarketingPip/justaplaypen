@@ -178,6 +178,13 @@ def extract_memorial_data(memorial_url):
 
     soup = BeautifulSoup(response.text, "html.parser")
 
+    # Get the `findagrave` object from JavaScript
+    result = driver.execute_script("return JSON.stringify(findagrave);")
+
+    # Convert JSON string to Python dictionary
+    findagrave_data = json.loads(result)
+
+    print("Find a Grave data:", findagrave_data)
     # Extract birth date
     birth_date_raw = soup.select_one("#birthDateLabel")
     birth_date = parse_date(birth_date_raw.text.strip()) if birth_date_raw else None
